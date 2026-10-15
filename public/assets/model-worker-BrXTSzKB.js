@@ -7719,7 +7719,7 @@ import {buildPeriodVehicle} from './period-vehicles.js';
 import {signalByLane,createSignalController,movementKind} from './traffic-signal-plan.js';
 import {createTrafficSignals} from './traffic-signals.js';
 import {terrainHeight} from './terrain.js';
-import {groundVehicle,createVehicleGroundUpdater} from './vehicle-grounding.js';
+import {groundVehicle,createVehicleGroundUpdater,vehicleCameraVolume} from './vehicle-grounding.js';
 
 export const TRAFFIC=Object.freeze({maxActive:100,initialActive:20,intervalMin:1.2,intervalMax:2.2,spawnNear:230,retireFar:300,acceleration:1.8,braking:5.0,gap:4.0});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -7908,7 +7908,7 @@ export function createTrafficSimulation({random=Math.random,visible=()=>false,ma
 const trafficSpawnMargin=8;
 
 export function createTraffic({scene,mesh,box,stroke,wash,player,frustum,random=Math.random,cacheGround=true,maxActive=TRAFFIC.maxActive,initialActive=TRAFFIC.initialActive}){
- const prototypes=new Map(),instances=new Map(),pool=new Map(),parked=[];let enabled=true;
+ const prototypes=new Map(),instances=new Map(),pool=new Map(),parked=[],cameraVolumes=new WeakMap();let enabled=true;
  const updateGround=cacheGround?createVehicleGroundUpdater():groundVehicle;
  const sphere=new T.Sphere(new T.Vector3(),1);
  const visible=(p,r=8)=>{sphere.center.set(p.x,terrainHeight(p.x,p.z)+1.5,p.z);sphere.radius=r;return frustum.intersectsSphere(sphere);};
@@ -7929,13 +7929,25 @@ export function createTraffic({scene,mesh,box,stroke,wash,player,frustum,random=
   for(const car of simulation.cars){let g=instances.get(car.id);if(!g){g=instance(car);instances.set(car.id,g);}updateGround(g,car);g.visible=enabled&&distance(car,player)<260&&visible(car,vehicleSize(car.model).d);for(const wheel of g.userData.wheels)wheel.rotation.x=car.travelled/((vehicleSize(car.model).body==='bus'?.43:['truck','van'].includes(vehicleSize(car.model).body)?.31:.27)*VEHICLE_SCALE);}
   for(const {spec,g} of parked)g.visible=enabled&&distance(spec,player)<260&&visible(spec,vehicleSize(spec.model).d);
  }
- function update(dt,p){player=p;simulation.step(enabled?dt:0,p);sync();signals.update();}
+ function advance(dt,p){player=p;simulation.step(enabled?dt:0,p);}
+ function refresh(){sync();signals.update();}
+ function update(dt,p){advance(dt,p);refresh();}
+ function cameraPartsNear(point,reach,parts=[]){
+  parts.length=0;if(!enabled)return parts;
+  const add=car=>{
+   if(distance(car,point)>reach+vehicleSize(car.model).d)return;
+   let cached=cameraVolumes.get(car);const turn=car.turn||0;
+   if(!cached||cached.x!==car.x||cached.z!==car.z||cached.turn!==turn||cached.model!==car.model||cached.taxi!==car.taxi){cached={x:car.x,z:car.z,turn,model:car.model,taxi:car.taxi,part:vehicleCameraVolume(car)};cameraVolumes.set(car,cached);}
+   parts.push(cached.part);
+  };
+  for(const car of simulation.cars)add(car);for(const {spec} of parked)add(spec);return parts;
+ }
  function reset(p){player=p;simulation.reset(p);sync();signals.update();}
  const isClear=(x,z)=>!simulation.cars.some(car=>vehicleContains({x,z},car));
  const snapshot=()=>({clock:+simulation.clock.toFixed(1),active:simulation.cars.length,maxActive:simulation.limits.maxActive,parked:parked.length,...simulation.stats,cars:simulation.cars.map(c=>({id:c.id,model:c.model,color:c.color,taxi:c.taxi,x:+c.x.toFixed(2),z:+c.z.toFixed(2),speed:+c.speed.toFixed(2),path:c.path.id,lane:c.lane,laneIndex:trafficLaneById.get(c.lane)?.index,changingLane:!!c.path.laneChange,lock:c.lock}))});
  function prepare(renderer,camera,worldScene){const warm=new T.Scene();warm.fog=worldScene.fog;for(const g of [...prototypes.values(),...signals.groups])warm.add(g.clone(true));return renderer.compileAsync(warm,camera,worldScene);}
  function setLimits(next){Object.assign(simulation.limits,next);}
- sync();return{update,reset,isClear,snapshot,prepare,simulation,parked,signals,setLimits,setEnabled(value){enabled=!!value;sync();},get enabled(){return enabled;},get templates(){return [...prototypes.values()];}};
+ sync();return{update,advance,refresh,cameraPartsNear,reset,isClear,snapshot,prepare,simulation,parked,signals,setLimits,setEnabled(value){enabled=!!value;sync();},get enabled(){return enabled;},get templates(){return [...prototypes.values()];}};
 }
 `,lt=`import plan from './seoul-plan.json' with {type:'json'};
 import {shopProfile} from './shop-profiles.js';
@@ -8428,7 +8440,7 @@ export function chooseVehicle(random,{parked=false,busAllowed=true,active=[]}={}
 }
 export const vehicleBounds=v=>{const m=vehicleSize(v);return{x:v.x,z:v.z,w:m.w+.37,d:m.d+.26,turn:v.turn||0};};
 `,dt=`import {terrainHeight} from './terrain.js';
-import {vehicleSize,VEHICLE_SCALE} from './vehicle-catalog.js';
+import {vehicleSize,vehicleBounds,VEHICLE_SCALE} from './vehicle-catalog.js';
 
 // 네 바퀴가 닿는 노면으로 차체를 세운다. 이동/주차에 같은 자세 계산 사용.
 export function vehicleGroundPose(car,sample=terrainHeight){
@@ -8438,6 +8450,15 @@ export function vehicleGroundPose(car,sample=terrainHeight){
  return{y:(fl+fr+rl+rr)/4+.13,pitch:Math.atan2(fl+fr-rl-rr,4*halfWheelbase),roll:Math.atan2(fr+rr-fl-rl,4*halfTrack),turn};
 }
 export function groundVehicle(group,car){const p=vehicleGroundPose(car);group.position.set(car.x,p.y,car.z);group.rotation.set(p.pitch,p.turn,p.roll,'YXZ');}
+
+// 경사진 차체·지붕·택시 표지까지 감싸는 카메라 부피. 건물과 같은 회전 상자 판정 사용.
+export function vehicleCameraVolume(car,sample=terrainHeight){
+ const p=vehicleGroundPose(car,sample),b=vehicleBounds(car),halfX=b.w/2,halfZ=b.d/2,halfY=(vehicleSize(car.model).h+(car.taxi?.23:.08)*VEHICLE_SCALE)/2;
+ const cp=Math.cos(p.pitch),sp=Math.sin(p.pitch),cr=Math.cos(p.roll),sr=Math.sin(p.roll),c=Math.cos(p.turn),s=Math.sin(p.turn);
+ const x=-sr*halfY,z=sp*cr*halfY,y=p.y+cp*cr*halfY;
+ const rx=Math.abs(cr)*halfX+Math.abs(sr)*halfY,ry=Math.abs(cp*sr)*halfX+Math.abs(cp*cr)*halfY+Math.abs(sp)*halfZ,rz=Math.abs(sp*sr)*halfX+Math.abs(sp*cr)*halfY+Math.abs(cp)*halfZ;
+ return{x:car.x+x*c+z*s,z:car.z-x*s+z*c,w:rx*2,d:rz*2,turn:p.turn,base:y-ry,h:y+ry};
+}
 
 // 고정 지형의 같은 자세 재사용. 정지 차량의 네 바퀴 높이 재계산 생략.
 export function createVehicleGroundUpdater(sample=terrainHeight){
@@ -8538,7 +8559,7 @@ export function createWorld(canvas,start=spawn,{trafficRandom=Math.random,qualit
   return nearbyCameraParts;
  }
  const billboardBasis={right:new T.Vector3(),up:new T.Vector3()};
- const followRig={distance:7.5,clearFor:0};
+ const followRig={distance:7.5,clearFor:0},nearbyVehicleParts=[];
  const warmTarget=new T.WebGLRenderTarget(1,1),warmScene=new T.Scene(),warmCamera=new T.PerspectiveCamera(55,1,.35,145);warmCamera.position.set(10000,10000,10000);warmCamera.lookAt(10000,10000,10001);
  const frustum=new T.Frustum(),viewMatrix=new T.Matrix4(),buildingSpheres=new Map(cityBuildings.map(b=>[b.id,new T.Sphere(new T.Vector3(b.x,(b.h+8)/2+(b.lots?Math.max(...b.lots.map(l=>l.elevation||0)):b.elevation||0),b.z),Math.hypot(b.w,b.d,b.h+8)/2+2)]));
  let view='top',pitch=.3,distance=7.5;
@@ -8817,7 +8838,8 @@ export function createWorld(canvas,start=spawn,{trafficRandom=Math.random,qualit
  function orbit(dx,dy=0){cacheQuietFor=0;allowCacheWrites(false);yaw-=dx*.0025;if(view==='third')pitch=Math.max(-1.25,Math.min(1.1,pitch+dy*.003));}
  function zoom(delta){if(view==='third'){distance=Math.max(3.5,Math.min(16,distance+Math.sign(delta)));return;}span=zoomSpan(span,delta);resize();}
  function placeFollow(dt,reduced){
-  const result=positionFollowCamera(follow,focus,{yaw,pitch,distance,height:characters.visitor.height,parts:cameraPartsNear(focus.x,focus.z,distance+1),state:followRig,dt,reduced,groundHeight:terrainHeight});
+  const parts=cameraPartsNear(focus.x,focus.z,distance+1);parts.push(...traffic.cameraPartsNear(focus,distance+1,nearbyVehicleParts));
+  const result=positionFollowCamera(follow,focus,{yaw,pitch,distance,height:characters.visitor.height,parts,state:followRig,dt,reduced,groundHeight:terrainHeight});
   pitch=result.pitch;
   if(metrics.enabled)canvas.dataset.cameraClearance=JSON.stringify(result);
   center.set(focus.x-Math.sin(yaw)*50,0,focus.z-Math.cos(yaw)*50);
@@ -8856,12 +8878,14 @@ export function createWorld(canvas,start=spawn,{trafficRandom=Math.random,qualit
   streamPlayer.x=player.x;streamPlayer.z=player.z;
   clock+=dt;trackCameraFocus(focus,player,dt,reduced,view==='third');
   focus.y=cameraFootHeight(player,heightAt,characters.visitor.groundOffset);
+  // 이번 프레임의 차량 위치로 카메라를 검사하고, 결정된 시야로 차량을 그린다.
+  const simulationStarted=stages?performance.now():0;traffic.advance(paused?0:dt,player);const simulationTime=stages?performance.now()-simulationStarted:0;
   if(view==='third')placeFollow(dt,reduced);else{center.copy(focus);camera.position.set(focus.x+Math.sin(yaw)*70,57+focus.y,focus.z+Math.cos(yaw)*70);camera.lookAt(focus.x,focus.y,focus.z);}
   if(metrics.enabled&&view==='third'){canvas.dataset.followDistance=String(distance);canvas.dataset.followActualDistance=String(follow.position.distanceTo(new T.Vector3(player.x,cameraFootHeight(player,heightAt,characters.visitor.groundOffset)+characters.visitor.height*.72,player.z)));}
   refreshFrustum();
-  if(stages){stages.camera=performance.now()-stageStart;stageStart=performance.now();}
-  traffic.update(paused?0:dt,player);if(metrics.enabled)canvas.dataset.traffic=JSON.stringify(traffic.snapshot());
-  if(stages){stages.traffic=performance.now()-stageStart;stageStart=performance.now();}
+  if(stages){stages.camera=performance.now()-stageStart-simulationTime;stageStart=performance.now();}
+  traffic.refresh();if(metrics.enabled)canvas.dataset.traffic=JSON.stringify(traffic.snapshot());
+  if(stages){stages.traffic=performance.now()-stageStart+simulationTime;stageStart=performance.now();}
   updateTiles();if(stages){stages.tiles=performance.now()-stageStart;stageStart=performance.now();}updateBuildings();if(stages){stages.buildings=performance.now()-stageStart;stageStart=performance.now();}
   // 실제 화면 방향의 캐릭터 폭·머리까지 가림 검사
   billboardBasis.right.setFromMatrixColumn(follow.matrixWorld,0);billboardBasis.up.setFromMatrixColumn(follow.matrixWorld,1);
