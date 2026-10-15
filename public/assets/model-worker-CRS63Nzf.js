@@ -4704,7 +4704,8 @@ function crownGeometry(rx,ry,rz,phase,width=14,height=10){
 }
 
 export function populatePeriodTree({group,d,height,x,z,kind,species=treeSpeciesAt(x,z,kind)}){
- const radius=height*(kind===0?.34:.24),center=height*(species==='pine'?.88:.90),tall=species==='ginkgo'?1.12:species==='juniper'?1.25:species==='pine'?.66:.75;
+ const median=species==='ginkgo'&&x===-87&&z< -70&&z> -160;
+ const radius=height*(median?.40:kind===0?.34:.24),center=height*(species==='pine'?.88:.90),tall=median?.90:species==='ginkgo'?1.12:species==='juniper'?1.25:species==='pine'?.66:.75;
  populateBotanicalTree({group,species,height:center,radius,tall,mesh:(g,c,x,y,z,p)=>d.solid(g,c,x,y,z,p,0),random:d.random});
  group.userData.modelHeight=height*1.18;
 }
