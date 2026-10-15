@@ -4128,8 +4128,8 @@ export function createNetworkSession({world,canvas,getPose,getActor,identity,cor
   p.textContent=data.name+': '+data.text;log.append(p);while(log.childElementCount>60)log.firstChild.remove();if(atBottom)log.scrollTop=log.scrollHeight;
   bubbles.show(data.id,data.text);
  }
- panel.addEventListener('keydown',e=>{e.stopPropagation();visibility.show();if(e.key==='Escape'&&!e.isComposing){e.preventDefault();visibility.hide();clearInput();canvas.focus({preventScroll:true});}});panel.addEventListener('focusin',e=>{clearInput();if(content.contains(e.target))visibility.show();});
- canvas.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();openChat();}});
+ panel.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'&&e.repeat){e.preventDefault();return;}visibility.show();if(!e.isComposing&&e.keyCode!==229&&(e.key==='Escape'||(e.key==='Enter'&&e.target===message&&!message.value.trim()))){e.preventDefault();visibility.hide();clearInput();canvas.focus({preventScroll:true});}});panel.addEventListener('focusin',e=>{clearInput();if(content.contains(e.target))visibility.show();});
+ canvas.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();if(!e.repeat)openChat();}});
  identity.onChange(value=>{setName(value);room?.send('name',value);});
  message.addEventListener('input',()=>{message.setCustomValidity('');visibility.show();});
  message.addEventListener('compositionstart',()=>visibility.hold(true));message.addEventListener('compositionend',()=>visibility.hold(false));
