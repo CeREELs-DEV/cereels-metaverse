@@ -19,19 +19,38 @@ export class SeoulRoom extends Room{
   this.world=options.world;this.sessions=new Map();
   this.onMessage('pose',(client,value)=>{
    const player=this.state.visitors.get(client.sessionId),session=this.sessions.get(client.sessionId),now=Date.now();
-   if(!player||!validPose(value)||now-session.poseTime<60)return;
-   const distance=Math.hypot(value.x-player.x,value.z-player.z),allowance=14*Math.min(2,(now-session.moveTime)/1000)+2;
-   if(distance>allowance){client.send('position',{x:player.x,z:player.z});return;}
+   if(!player||!validPose(value))return;
+   const distance=Math.hypot(value.x-player.x,value.z-player.z),movement=session.movement;
+   if(movement){
+    if(!Number.isSafeInteger(value.moveSeq)||value.moveSeq<=movement.seq||!Number.isFinite(value.moveTime)||value.moveTime<0)return;
+    if(movement.time!==null){
+     if(value.moveTime<movement.time)return;
+     const elapsed=(value.moveTime-movement.time)/1000,lead=value.moveTime-movement.epoch-(now-movement.started);
+     if(distance>14*elapsed+.25||lead>2000){client.send('position',{x:player.x,z:player.z});return;}
+    }else{
+     // 접속 요청 뒤에도 로컬 보행 지속. 첫 응답에서 현재 위치·시간 기준 확정
+     movement.epoch=value.moveTime;movement.started=now;
+    }
+    movement.seq=value.moveSeq;movement.time=value.moveTime;
+   }else{
+    // 기존 열린 탭의 이전 전송 형식 호환
+    if(now-session.poseTime<60)return;
+    const allowance=14*Math.min(2,(now-session.moveTime)/1000)+2;
+    if(distance>allowance){client.send('position',{x:player.x,z:player.z});return;}
+   }
    session.poseTime=now;session.moveTime=now;
    Object.assign(player,{x:value.x,z:value.z,hx:value.hx,hz:value.hz,moving:value.moving===true,running:value.running===true});
    if(characters.has(value.character))player.character=value.character;
   });
-  this.onMessage('arrive',(client,id)=>{
+  this.onMessage('arrive',(client,value)=>{
+   const id=typeof value==='string'?value:value?.id,request=Number.isSafeInteger(value?.request)?value.request:null;
    const point=typeof id==='string'&&this.world?.entrances[id],player=this.state.visitors.get(client.sessionId),session=this.sessions.get(client.sessionId),now=Date.now();
    if(!point||!player)return;
-   if(now-session.arrivalTime<1500){client.send('position',{x:player.x,z:player.z});return;}
+   const respond=accepted=>client.send('position',{x:player.x,z:player.z,...(request===null?{}:{arrival:request,accepted})});
+   if(now-session.arrivalTime<1500){respond(false);return;}
    session.arrivalTime=now;session.moveTime=now;Object.assign(player,{x:point.x,z:point.z,moving:false});
-   client.send('position',{x:player.x,z:player.z});
+   if(session.movement&&session.movement.time!==null&&Number.isFinite(value?.moveTime)&&value.moveTime>=session.movement.time)session.movement.time=value.moveTime;
+   respond(true);
   });
   this.onMessage('chat',(client,value)=>{
    const player=this.state.visitors.get(client.sessionId),session=this.sessions.get(client.sessionId),now=Date.now(),message=cleanText(value,160);
@@ -47,7 +66,7 @@ export class SeoulRoom extends Room{
   options=options&&typeof options==='object'&&!Array.isArray(options)?options:{};
   const player=new Visitor(),point=validPose(options)?options:this.world.spawn;
   Object.assign(player,{name:cleanText(options.name,20)||'산책자-'+client.sessionId.slice(0,4),character:characters.has(options.character)?options.character:'visitor',x:point.x,z:point.z});
-  this.state.visitors.set(client.sessionId,player);this.sessions.set(client.sessionId,{poseTime:0,moveTime:Date.now(),chatTime:0,arrivalTime:0});
+  this.state.visitors.set(client.sessionId,player);this.sessions.set(client.sessionId,{poseTime:0,moveTime:Date.now(),chatTime:0,arrivalTime:0,movement:options.moveSeq===0&&Number.isFinite(options.moveTime)?{seq:0,time:null}:null});
  }
  onLeave(client){this.state.visitors.delete(client.sessionId);this.sessions.delete(client.sessionId);}
  onDispose(){if(SeoulRoom.current===this)SeoulRoom.current=null;}
