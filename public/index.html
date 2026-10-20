@@ -9,9 +9,9 @@
     <link rel="preload" href="./fonts/mapo-dpp.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./fonts/chosun-logo.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='15' fill='%232c5948'/%3E%3Ctext x='12' y='37' font-size='38' fill='%23fff9e8'%3Ec%3C/text%3E%3C/svg%3E" />
-    <script type="module" crossorigin src="./assets/index-BH6sWCi6.js"></script>
+    <script type="module" crossorigin src="./assets/index-CRXbZNvV.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-C1uXrUWg.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-BoN3tXqB.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-DZGOrAq_.css">
   </head>
   <body>
 <canvas id="world" aria-label="Explore 1980s Seoul with arrow keys or click to walk straight toward a point; drag to rotate" tabindex="0"></canvas>
@@ -20,12 +20,14 @@
  <button id="character-button" class="pill character-button" type="button" aria-label="캐릭터 준비 중" aria-haspopup="dialog" aria-controls="character-dialog" disabled><img alt="" hidden><span>캐릭터</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg></button>
  <button id="sprites-button" class="icon-button" aria-label="Open sprite studio" title="Sprite Studio"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg></button>
 </nav></header>
+<button id="report-button" class="pill issue-button" type="button" aria-haspopup="dialog" aria-controls="report-dialog">문제 신고</button>
 <div id="loading" role="status" aria-live="polite"><span class="loading-flower" aria-hidden="true">✳</span><p>Opening Seoul</p><small id="loading-detail">Just a moment.</small></div>
 <output id="location-label" class="seoul-location" aria-label="Current district">Seoul Station</output>
 <div class="view-switch" role="group" aria-label="Camera view"><button type="button" data-view="top" aria-pressed="true" title="Top view (V)">Top View</button><button type="button" data-view="third" aria-pressed="false" title="Third person (V)">3rd Person</button></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <dialog id="album-dialog" class="paper-dialog map-dialog" aria-labelledby="map-title"><button class="close" data-close aria-label="Close map">×</button><h2 id="map-title">1980s Seoul</h2><p class="muted">Choose a landmark to arrive instantly at its entrance.</p><div id="town-map"></div><div class="map-legend"><span><i></i> You are here</span><span><b data-landmark-count></b> Landmark sites</span></div></dialog>
 <dialog id="character-dialog" class="paper-dialog character-dialog" aria-labelledby="character-title" lang="ko"><button class="close" data-close aria-label="캐릭터 선택 닫기">×</button><h2 id="character-title">누구와 걸을까요?</h2><p class="character-intro">함께 서울을 걸을 친구를 골라 주세요.</p><div class="character-lineup" role="group" aria-label="걷기 캐릭터"></div><p class="character-status" role="status" aria-live="polite"></p></dialog>
+<dialog id="report-dialog" class="paper-dialog issue-dialog" aria-labelledby="report-title" lang="ko"><button class="close" data-close aria-label="문제 신고 닫기">×</button><h2 id="report-title">문제 신고</h2><p>화면이 하얘지거나 다시 로딩됐나요?<br>진단 정보를 복사해 문의할 때 붙여 넣어 주세요.</p><p data-report-summary class="issue-summary"></p><div class="issue-actions"><button type="button" data-report-copy class="primary" disabled>진단 정보 복사</button><button type="button" data-report-save disabled>파일로 저장</button></div><p data-report-status role="status" aria-live="polite"></p><p class="issue-privacy">현재 상태와 직전 플레이 기록을 포함합니다. 닉네임·대화·보행 좌표는 포함하지 않으며 자동 전송하지 않습니다.</p><details data-report-details><summary>진단 내용 보기</summary><textarea data-report-text aria-label="복사할 진단 정보" readonly spellcheck="false"></textarea></details><a data-report-fallback href="/diagnostics.html" target="_blank" rel="noopener" hidden>별도 진단 페이지 열기</a></dialog>
 <dialog id="sprite-dialog" class="paper-dialog sprite-dialog" aria-labelledby="sprite-title"><header class="sprite-header"><div><h2 id="sprite-title">Sprite Studio</h2><p>Preview a pose. Download it. Make it your own.</p></div><button data-close class="sprite-close" aria-label="Close sprite studio"><span aria-hidden="true">×</span></button></header><div id="sprite-studio"></div></dialog>
   </body>
 </html>
