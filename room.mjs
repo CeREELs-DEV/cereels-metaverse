@@ -1,5 +1,6 @@
 import {Room,ServerError} from '@colyseus/core';
 import {schema,t} from '@colyseus/schema';
+import {createSharedTraffic} from './traffic-world.mjs';
 
 export const MAX_VISITORS=12;
 const characters=new Set(['visitor','cleo','eustace','taemi']);
@@ -8,7 +9,9 @@ export function validPose(value){
  return !!value&&typeof value==='object'&&[value.x,value.z,value.hx,value.hz].every(Number.isFinite)&&Math.abs(value.x)<249&&Math.abs(value.z)<374&&Math.abs(value.hx)<=1.01&&Math.abs(value.hz)<=1.01;
 }
 const Visitor=schema({name:t.string().default(''),character:t.string().default('visitor'),x:t.float32().default(0),z:t.float32().default(0),hx:t.float32().default(1),hz:t.float32().default(1),moving:t.boolean().default(false),running:t.boolean().default(false)},'Visitor');
-const SeoulState=schema({visitors:t.map(Visitor)},'SeoulState');
+const Car=schema({model:t.string(),color:t.string(),taxi:t.boolean(),x:t.float32(),z:t.float32(),turn:t.float32(),speed:t.float32(),travelled:t.float32()},'Car');
+const Signal=schema({index:t.uint8(),elapsed:t.float32()},'Signal');
+const SeoulState=schema({visitors:t.map(Visitor),cars:t.map(Car),signals:t.map(Signal),trafficTick:t.uint32().default(0),trafficTime:t.float64().default(0)},'SeoulState');
 
 export class SeoulRoom extends Room{
  static current=null;
@@ -17,6 +20,10 @@ export class SeoulRoom extends Room{
   if(SeoulRoom.current)throw new ServerError(429,'서울 시험 서버가 이미 열려 있습니다.');
   SeoulRoom.current=this;this.roomId='seoul';this.setState(new SeoulState());this.setPatchRate(100);
   this.world=options.world;this.sessions=new Map();
+  if(options.traffic){
+   this.traffic=createSharedTraffic(options.traffic);
+   this.setSimulationInterval(dt=>{this.traffic.advance(dt/1000,[...this.state.visitors.values()]);this.publishTraffic();},50);
+  }
   this.onMessage('pose',(client,value)=>{
    const player=this.state.visitors.get(client.sessionId),session=this.sessions.get(client.sessionId),now=Date.now();
    if(!player||!validPose(value))return;
@@ -49,6 +56,7 @@ export class SeoulRoom extends Room{
    const respond=accepted=>client.send('position',{x:player.x,z:player.z,...(request===null?{}:{arrival:request,accepted})});
    if(now-session.arrivalTime<1500){respond(false);return;}
    session.arrivalTime=now;session.moveTime=now;Object.assign(player,{x:point.x,z:point.z,moving:false});
+   if(this.traffic){this.traffic.populate(point,[...this.state.visitors.values()]);this.publishTraffic();}
    if(session.movement&&session.movement.time!==null&&Number.isFinite(value?.moveTime)&&value.moveTime>=session.movement.time)session.movement.time=value.moveTime;
    respond(true);
   });
@@ -67,6 +75,15 @@ export class SeoulRoom extends Room{
   const player=new Visitor(),point=validPose(options)?options:this.world.spawn;
   Object.assign(player,{name:cleanText(options.name,20)||'산책자-'+client.sessionId.slice(0,4),character:characters.has(options.character)?options.character:'visitor',x:point.x,z:point.z});
   this.state.visitors.set(client.sessionId,player);this.sessions.set(client.sessionId,{poseTime:0,moveTime:Date.now(),chatTime:0,arrivalTime:0,movement:options.moveSeq===0&&Number.isFinite(options.moveTime)?{seq:0,time:null}:null});
+  if(this.traffic){this.traffic.populate(player,[...this.state.visitors.values()]);this.publishTraffic();}
+ }
+ publishTraffic(){
+  if(!this.traffic)return;
+  const snapshot=this.traffic.snapshot(),keep=new Set(snapshot.cars.map(c=>String(c.id)));
+  for(const id of this.state.cars.keys())if(!keep.has(id))this.state.cars.delete(id);
+  for(const {id,...pose} of snapshot.cars){const key=String(id),car=this.state.cars.get(key)||new Car();Object.assign(car,pose);this.state.cars.set(key,car);}
+  for(const {id,index,elapsed} of snapshot.signals){const signal=this.state.signals.get(id)||new Signal();Object.assign(signal,{index,elapsed});this.state.signals.set(id,signal);}
+  this.state.trafficTick=snapshot.tick;this.state.trafficTime=snapshot.time;
  }
  onLeave(client){this.state.visitors.delete(client.sessionId);this.sessions.delete(client.sessionId);}
  onDispose(){if(SeoulRoom.current===this)SeoulRoom.current=null;}

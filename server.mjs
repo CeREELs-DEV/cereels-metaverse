@@ -8,8 +8,9 @@ import {WebSocketTransport} from '@colyseus/ws-transport';
 import {SeoulRoom,MAX_VISITORS} from './room.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-export async function startServer({port=Number(process.env.PORT)||2567,host='0.0.0.0',publicDir=path.join(root,existsSync(path.join(root,'public'))?'public':'../dist'),world,signals=true}={}){
+export async function startServer({port=Number(process.env.PORT)||2567,host='0.0.0.0',publicDir=path.join(root,existsSync(path.join(root,'public'))?'public':'../dist'),world,traffic,signals=true}={}){
  world??=JSON.parse(readFileSync(path.join(root,'world-data.json'),'utf8'));
+ traffic??=existsSync(path.join(root,'traffic-data.json'))?JSON.parse(readFileSync(path.join(root,'traffic-data.json'),'utf8')):undefined;
  const httpLimits=new Map();
  const server=new Server({greet:false,gracefullyShutdown:signals,transport:new WebSocketTransport({maxPayload:4096,pingInterval:15000,pingMaxRetries:2}),express:app=>{
   app.disable('x-powered-by');app.set('trust proxy',1);
@@ -18,7 +19,7 @@ export async function startServer({port=Number(process.env.PORT)||2567,host='0.0
    next();
   });
   app.use(compression());
-  app.get('/healthz',(_req,res)=>res.json({ok:true,world:'seoul',capacity:MAX_VISITORS,build:process.env.RENDER_GIT_COMMIT?.slice(0,12)||'local'}));
+  app.get('/healthz',(_req,res)=>res.json({ok:true,world:'seoul',capacity:MAX_VISITORS,traffic:traffic?'shared-v1':'disabled',build:process.env.RENDER_GIT_COMMIT?.slice(0,12)||'local'}));
   app.use(express.static(publicDir,{maxAge:'1h',dotfiles:'deny',setHeaders:(res,file)=>{if(file.endsWith('.html'))res.setHeader('Cache-Control','no-cache');}}));
  }});
  server.router=createRouter({},{onRequest:request=>{
@@ -28,7 +29,7 @@ export async function startServer({port=Number(process.env.PORT)||2567,host='0.0
   if(entry&&entry.until>now){if(++entry.count>30)return Response.json({error:'잠시 뒤 다시 접속해 주세요.'},{status:429});}
   else{if(httpLimits.size>=10000){for(const [ip,value] of httpLimits)if(value.until<now)httpLimits.delete(ip);if(httpLimits.size>=10000)return new Response(null,{status:503});}httpLimits.set(key,{count:1,until:now+60000});}
  }});
- server.define('seoul',SeoulRoom,{world});
+ server.define('seoul',SeoulRoom,{world,traffic});
  await server.listen(port,host);await matchMaker.createRoom('seoul',{});
  return server;
 }
