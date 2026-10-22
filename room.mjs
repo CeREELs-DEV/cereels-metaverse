@@ -5,8 +5,12 @@ import {createSharedTraffic} from './traffic-world.mjs';
 export const MAX_VISITORS=12;
 const characters=new Set(['visitor','cleo','eustace','taemi']);
 export const cleanText=(value,max)=>typeof value==='string'?value.normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').trim().slice(0,max):'';
-export function validPose(value){
- return !!value&&typeof value==='object'&&[value.x,value.z,value.hx,value.hz].every(Number.isFinite)&&Math.abs(value.x)<249&&Math.abs(value.z)<374&&Math.abs(value.hx)<=1.01&&Math.abs(value.hz)<=1.01;
+export function validPose(value,world={}){
+ // 이전 호출자의 기본 도심 경계. 실행 서버는 준비된 월드의 확장 경계 사용.
+ const bounds=world.bounds||{minX:-250,maxX:250,minZ:-375,maxZ:375};
+ if(!value||typeof value!=='object'||![value.x,value.z,value.hx,value.hz].every(Number.isFinite)||value.x<=bounds.minX+1||value.x>=bounds.maxX-1||value.z<=bounds.minZ+1||value.z>=bounds.maxZ-1||Math.abs(value.hx)>1.01||Math.abs(value.hz)>1.01)return false;
+ if(!world.boundary)return true;
+ let inside=false;for(let i=0,j=world.boundary.length-1;i<world.boundary.length;j=i++){const a=world.boundary[i],b=world.boundary[j];if((a[1]>value.z)!==(b[1]>value.z)&&value.x<(b[0]-a[0])*(value.z-a[1])/(b[1]-a[1])+a[0])inside=!inside;}return inside;
 }
 const Visitor=schema({name:t.string().default(''),character:t.string().default('visitor'),x:t.float32().default(0),z:t.float32().default(0),hx:t.float32().default(1),hz:t.float32().default(1),moving:t.boolean().default(false),running:t.boolean().default(false)},'Visitor');
 const Car=schema({model:t.string(),color:t.string(),taxi:t.boolean(),x:t.float32(),z:t.float32(),turn:t.float32(),speed:t.float32(),travelled:t.float32()},'Car');
@@ -26,7 +30,7 @@ export class SeoulRoom extends Room{
   }
   this.onMessage('pose',(client,value)=>{
    const player=this.state.visitors.get(client.sessionId),session=this.sessions.get(client.sessionId),now=Date.now();
-   if(!player||!validPose(value))return;
+   if(!player||!validPose(value,this.world))return;
    const distance=Math.hypot(value.x-player.x,value.z-player.z),movement=session.movement;
    if(movement){
     if(!Number.isSafeInteger(value.moveSeq)||value.moveSeq<=movement.seq||!Number.isFinite(value.moveTime)||value.moveTime<0)return;
@@ -72,7 +76,7 @@ export class SeoulRoom extends Room{
  }
  onJoin(client,options={}){
   options=options&&typeof options==='object'&&!Array.isArray(options)?options:{};
-  const player=new Visitor(),point=validPose(options)?options:this.world.spawn;
+  const player=new Visitor(),point=validPose(options,this.world)?options:this.world.spawn;
   Object.assign(player,{name:cleanText(options.name,20)||'산책자-'+client.sessionId.slice(0,4),character:characters.has(options.character)?options.character:'visitor',x:point.x,z:point.z});
   this.state.visitors.set(client.sessionId,player);this.sessions.set(client.sessionId,{poseTime:0,moveTime:Date.now(),chatTime:0,arrivalTime:0,movement:options.moveSeq===0&&Number.isFinite(options.moveTime)?{seq:0,time:null}:null});
   if(this.traffic){this.traffic.populate(player,[...this.state.visitors.values()]);this.publishTraffic();}
