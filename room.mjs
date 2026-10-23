@@ -76,6 +76,7 @@ export class SeoulRoom extends Room{
  }
  onJoin(client,options={}){
   options=options&&typeof options==='object'&&!Array.isArray(options)?options:{};
+  if(this.world.worldId&&this.world.worldId!=='seoul'&&(options.worldId!==this.world.worldId||options.mapRevision!==this.world.mapRevision))throw new ServerError(409,'서울 버전이 다릅니다. 같은 버전 주소에서 다시 접속해 주세요.');
   const player=new Visitor(),point=validPose(options,this.world)?options:this.world.spawn;
   Object.assign(player,{name:cleanText(options.name,20)||'산책자-'+client.sessionId.slice(0,4),character:characters.has(options.character)?options.character:'visitor',x:point.x,z:point.z});
   this.state.visitors.set(client.sessionId,player);this.sessions.set(client.sessionId,{poseTime:0,moveTime:Date.now(),chatTime:0,arrivalTime:0,movement:options.moveSeq===0&&Number.isFinite(options.moveTime)?{seq:0,time:null}:null});

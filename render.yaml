@@ -1,6 +1,7 @@
 services:
   - type: web
-    name: cereels-seoul
+    name: cereels-seoul-12
+    branch: deploy-1.2
     runtime: node
     plan: free
     region: singapore
