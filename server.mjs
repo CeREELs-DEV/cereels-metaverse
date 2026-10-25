@@ -19,7 +19,7 @@ export async function startServer({port=Number(process.env.PORT)||2567,host='0.0
    next();
   });
   app.use(compression());
-  app.get('/healthz',(_req,res)=>res.json({ok:true,world:'seoul',capacity:MAX_VISITORS,traffic:traffic?'shared-v1':'disabled',build:process.env.RENDER_GIT_COMMIT?.slice(0,12)||'local'}));
+  app.get('/healthz',(_req,res)=>res.json({ok:true,world:'seoul',worldId:world.worldId||'seoul',mapRevision:world.mapRevision||'stable-1.1',capacity:MAX_VISITORS,traffic:traffic?'shared-v1':'disabled',build:process.env.RENDER_GIT_COMMIT?.slice(0,12)||'local'}));
   app.use(express.static(publicDir,{maxAge:'1h',dotfiles:'deny',setHeaders:(res,file)=>{if(file.endsWith('.html'))res.setHeader('Cache-Control','no-cache');}}));
  }});
  server.router=createRouter({},{onRequest:request=>{

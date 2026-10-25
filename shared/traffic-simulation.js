@@ -54,6 +54,10 @@ export function createTrafficSimulation({plan,random=Math.random,visible=()=>fal
   }
   const points=[];for(let i=0;i<=40;i++){const t=i/40,q=t*t*t*(10-15*t+6*t*t),a=pathAt(lane,start+(end-start)*t),b=pathAt(targetLane,targetStart+(targetEnd-targetStart)*t);points.push([a.x+(b.x-a.x)*q,a.z+(b.z-a.z)*q]);}
   const path={...pathOf(points),id:`merge-${car.id}-${stats.laneChanges}`,laneChange:true,source:lane.id,next:targetId,endS:targetEnd,chain:lane.chain,direction:lane.direction};
+  // 곡선의 접선은 각 꼭짓점에서 바뀐다. 1.5m 표본 사이에 긴 버스의
+  // 꼬리만 잠깐 연석을 넘는 경로도 있으므로 양쪽 접선을 먼저 검사한다.
+  // 실제 운행 프레임마다 검사하지 않고 차선 변경을 결정할 때만 수행.
+  for(const s of path.lengths)for(const at of [Math.max(0,s-.0001),Math.min(path.length,s+.0001)])if(!bodyOnRoad(pathAt(path,at),m.w+.04,m.d+.04))return false;
   for(let s=0;s<=path.length;s+=1.5){const candidate={...car,...pathAt(path,s)};if(!bodyOnRoad(candidate,m.w,m.d)||(Array.isArray(player)?player:[player]).some(p=>vehicleContains(p,candidate,1.25))||obstacles(candidate).some(other=>other!==car&&bodiesOverlap(candidate,other,.15,.5)))return false;}
   if(frontGap(car).lead?.parked)stats.parkingPasses++;
   car.path=path;car.s=0;car.next=null;car.laneCheckAt=clock+10+random()*10;stats.laneChanges++;return true;
