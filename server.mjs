@@ -8,8 +8,10 @@ import {WebSocketTransport} from '@colyseus/ws-transport';
 import {SeoulRoom,MAX_VISITORS} from './room.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-export async function startServer({port=Number(process.env.PORT)||2567,host='0.0.0.0',publicDir=path.join(root,existsSync(path.join(root,'public'))?'public':'../dist'),world,traffic,signals=true}={}){
+export async function startServer({port=Number(process.env.PORT)||2567,host='0.0.0.0',publicDir=path.join(root,existsSync(path.join(root,'public'))?'public':'../dist'),world,world13,traffic,signals=true}={}){
+ const configuredWorld=!!world;
  world??=JSON.parse(readFileSync(path.join(root,'world-data.json'),'utf8'));
+ if(!configuredWorld&&world13===undefined&&existsSync(path.join(root,'world-13-data.json')))world13=JSON.parse(readFileSync(path.join(root,'world-13-data.json'),'utf8'));
  traffic??=existsSync(path.join(root,'traffic-data.json'))?JSON.parse(readFileSync(path.join(root,'traffic-data.json'),'utf8')):undefined;
  const httpLimits=new Map();
  const server=new Server({greet:false,gracefullyShutdown:signals,transport:new WebSocketTransport({maxPayload:4096,pingInterval:15000,pingMaxRetries:2}),express:app=>{
@@ -19,7 +21,7 @@ export async function startServer({port=Number(process.env.PORT)||2567,host='0.0
    next();
   });
   app.use(compression());
-  app.get('/healthz',(_req,res)=>res.json({ok:true,world:'seoul',worldId:world.worldId||'seoul',mapRevision:world.mapRevision||'stable-1.1',capacity:MAX_VISITORS,traffic:traffic?'shared-v1':'disabled',build:process.env.RENDER_GIT_COMMIT?.slice(0,12)||'local'}));
+  app.get('/healthz',(req,res)=>{const selected=req.query.version==='1.3'?world13:world;if(!selected)return res.status(404).json({ok:false,error:'version unavailable'});res.json({ok:true,world:'seoul',worldId:selected.worldId||'seoul',mapRevision:selected.mapRevision||'stable-1.1',capacity:MAX_VISITORS,traffic:selected===world13?'shared-exploration-v1':traffic?'shared-v1':'disabled',versions:world13?['1.2','1.3']:['1.2'],build:process.env.RENDER_GIT_COMMIT?.slice(0,12)||'local'});});
   app.use(express.static(publicDir,{maxAge:'1h',dotfiles:'deny',setHeaders:(res,file)=>{if(file.endsWith('.html'))res.setHeader('Cache-Control','no-cache');}}));
  }});
  server.router=createRouter({},{onRequest:request=>{
@@ -30,7 +32,9 @@ export async function startServer({port=Number(process.env.PORT)||2567,host='0.0
   else{if(httpLimits.size>=10000){for(const [ip,value] of httpLimits)if(value.until<now)httpLimits.delete(ip);if(httpLimits.size>=10000)return new Response(null,{status:503});}httpLimits.set(key,{count:1,until:now+60000});}
  }});
  server.define('seoul',SeoulRoom,{world,traffic});
+ if(world13)server.define('exploration',SeoulRoom,{world:world13});
  await server.listen(port,host);await matchMaker.createRoom('seoul',{});
+ if(world13)await matchMaker.createRoom('exploration',{});
  return server;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

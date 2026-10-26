@@ -1,0 +1,13 @@
+import {junctions,signalPhase,greenFor} from './exploration-shared/street-plan.js';
+// 같은 서버에서 별도 방의 차량·신호 시각 동기화
+const loops=[[[-41,-3],[56,-3],[56,58],[-41,58]],[[-41,-70],[104.5,-70],[104.5,-7],[-41,-7]]];
+function rounded(points){const out=[];for(let i=0;i<points.length;i++){const a=points[(i+points.length-1)%points.length],b=points[i],c=points[(i+1)%points.length],ab=Math.hypot(a[0]-b[0],a[1]-b[1]),cb=Math.hypot(c[0]-b[0],c[1]-b[1]),r=3,start=[b[0]+(a[0]-b[0])*r/ab,b[1]+(a[1]-b[1])*r/ab],end=[b[0]+(c[0]-b[0])*r/cb,b[1]+(c[1]-b[1])*r/cb];for(let n=0;n<=6;n++){const t=n/6;out.push([(1-t)**2*start[0]+2*t*(1-t)*b[0]+t*t*end[0],(1-t)**2*start[1]+2*t*(1-t)*b[1]+t*t*end[1]]);}}out.push(out[0]);return out;}
+function path(points){const p=rounded(points),lengths=[],total=p.slice(1).reduce((s,b,i)=>{lengths.push(s);return s+Math.hypot(b[0]-p[i][0],b[1]-p[i][1]);},0);return{total,at(distance){const t=((distance%total)+total)%total;let i=lengths.findLastIndex(s=>s<=t);const a=p[i],b=p[i+1],length=Math.hypot(b[0]-a[0],b[1]-a[1]),f=(t-lengths[i])/length;return{x:a[0]+(b[0]-a[0])*f,z:a[1]+(b[1]-a[1])*f,turn:Math.atan2(b[0]-a[0],b[1]-a[1])};}};}
+export function createExplorationTraffic(){const paths=loops.map(path),colors=['#197f85','#dc492c','#efb544','#f8edcf','#2c7b9a'],cars=paths.flatMap((p,j)=>Array.from({length:6},(_,i)=>({id:1000+j*6+i,model:'pony',color:colors[i%5],taxi:i===2,path:j,travelled:i*p.total/6,speed:0,...p.at(i*p.total/6)})));let tick=0,time=0;
+ return{populate(){},advance(dt,players){if(!players.length)return;dt=Math.min(.1,dt);time+=dt;tick++;const phase=signalPhase(time);
+  for(const car of cars){const dx=Math.sin(car.turn),dz=Math.cos(car.turn),axis=Math.abs(dx)>Math.abs(dz)?'ew':'ns';
+   const red=junctions.some(j=>{const forward=(j.x-car.x)*dx+(j.z-car.z)*dz,lateral=Math.abs((j.x-car.x)*dz-(j.z-car.z)*dx),stop=(axis==='ns'?j.ew:j.ns)/2+3.4;return lateral<4&&forward>stop&&forward<stop+2.5&&!greenFor(axis,phase.index);});
+   const ahead=cars.some(c=>c!==car&&c.path===car.path&&((c.travelled-car.travelled+paths[car.path].total)%paths[car.path].total)<5.6);
+   const stop=red||ahead||players.some(p=>Math.hypot(p.x-car.x,p.z-car.z)<3),speed=stop?0:4.2;car.speed=speed;car.travelled+=speed*dt;Object.assign(car,paths[car.path].at(car.travelled));
+  }},snapshot(){return{tick,time,cars:cars.map(({path,...c})=>({...c})),signals:junctions.map(j=>({id:j.id,...signalPhase(time)}))};}};
+}

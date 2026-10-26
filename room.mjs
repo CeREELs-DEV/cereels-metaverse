@@ -1,6 +1,7 @@
 import {Room,ServerError} from '@colyseus/core';
 import {schema,t} from '@colyseus/schema';
 import {createSharedTraffic} from './traffic-world.mjs';
+import {createExplorationTraffic} from './exploration-traffic.mjs';
 
 export const MAX_VISITORS=12;
 const characters=new Set(['visitor','cleo','eustace','taemi']);
@@ -19,13 +20,16 @@ const SeoulState=schema({visitors:t.map(Visitor),cars:t.map(Car),signals:t.map(S
 
 export class SeoulRoom extends Room{
  static current=null;
+ static additional=new Map();
  maxClients=MAX_VISITORS;maxMessagesPerSecond=35;autoDispose=false;
  onCreate(options={}){
-  if(SeoulRoom.current)throw new ServerError(429,'서울 시험 서버가 이미 열려 있습니다.');
-  SeoulRoom.current=this;this.roomId='seoul';this.setState(new SeoulState());this.setPatchRate(100);
+  const roomId=options.world?.roomId||'seoul';
+  if(roomId==='seoul'?SeoulRoom.current:SeoulRoom.additional.has(roomId))throw new ServerError(429,'서울 시험 서버가 이미 열려 있습니다.');
+  if(roomId==='seoul')SeoulRoom.current=this;else SeoulRoom.additional.set(roomId,this);
+  this.roomId=roomId;this.setState(new SeoulState());this.setPatchRate(100);
   this.world=options.world;this.sessions=new Map();
-  if(options.traffic){
-   this.traffic=createSharedTraffic(options.traffic);
+  if(options.traffic||options.world?.worldId==='seoul-1.3'){
+   this.traffic=options.world?.worldId==='seoul-1.3'?createExplorationTraffic():createSharedTraffic(options.traffic);
    this.setSimulationInterval(dt=>{this.traffic.advance(dt/1000,[...this.state.visitors.values()]);this.publishTraffic();},50);
   }
   this.onMessage('pose',(client,value)=>{
@@ -91,5 +95,5 @@ export class SeoulRoom extends Room{
   this.state.trafficTick=snapshot.tick;this.state.trafficTime=snapshot.time;
  }
  onLeave(client){this.state.visitors.delete(client.sessionId);this.sessions.delete(client.sessionId);}
- onDispose(){if(SeoulRoom.current===this)SeoulRoom.current=null;}
+ onDispose(){if(SeoulRoom.current===this)SeoulRoom.current=null;if(SeoulRoom.additional.get(this.roomId)===this)SeoulRoom.additional.delete(this.roomId);}
 }
