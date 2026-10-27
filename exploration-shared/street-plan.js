@@ -2,15 +2,15 @@ import {stationForecourt} from './station-plan.js';
 import {roads,sites,distanceToSegment} from './plan.js';
 
 export const sidewalkWidth=2.5;
-export const junctions=[{id:'sejong-jongno',x:-43,z:-5,ew:8,ns:10},{id:'donhwa-jongno',x:58,z:-5,ew:8,ns:6},{id:'sejong-eulji',x:-43,z:60,ew:7,ns:10},{id:'donhwa-eulji',x:58,z:60,ew:7,ns:6}];
-export const crossingPlan=junctions.flatMap(j=>[
- {x:j.x,z:j.z+j.ew/2+3,axis:'ns',length:j.ns},
+export const junctions=[{id:'sejong-jongno',x:-43,z:-5,ew:8,ns:10},{id:'donhwa-jongno',x:58,z:-5,ew:8,ns:6},{id:'sejong-eulji',x:-43,z:60,ew:7,ns:10},{id:'donhwa-eulji',x:58,z:60,ew:7,ns:6,southClosed:true}];
+export const crossingPlan=[...junctions.flatMap(j=>[
+ ...(!j.southClosed?[{x:j.x,z:j.z+j.ew/2+3,axis:'ns',length:j.ns}]:[]),
  {x:j.x,z:j.z-j.ew/2-3,axis:'ns',length:j.ns},
  {x:j.x+j.ns/2+3,z:j.z,axis:'ew',length:j.ew},
  {x:j.x-j.ns/2-3,z:j.z,axis:'ew',length:j.ew}
-]);
+]),{x:-43,z:116,axis:'ns',length:8},{x:-4,z:86,axis:'ns',length:5}];
 export const signalHeads=junctions.flatMap(j=>[
- {id:j.id,axis:'ns',x:j.x+j.ns/2+1,z:j.z+j.ew/2+2,yaw:0},
+ ...(!j.southClosed?[{id:j.id,axis:'ns',x:j.x+j.ns/2+1,z:j.z+j.ew/2+2,yaw:0}]:[]),
  {id:j.id,axis:'ns',x:j.x-j.ns/2-1,z:j.z-j.ew/2-2,yaw:Math.PI},
  {id:j.id,axis:'ew',x:j.x+j.ns/2+2,z:j.z-j.ew/2-1,yaw:Math.PI/2},
  {id:j.id,axis:'ew',x:j.x-j.ns/2-2,z:j.z+j.ew/2+1,yaw:-Math.PI/2}

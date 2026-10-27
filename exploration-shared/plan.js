@@ -1,6 +1,6 @@
 import {stationPlan} from './station-plan.js';
 // 1.3 전용 좌표를 설계하며 1.2 지도를 축소하지 않는다.
-export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-2';
+export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-3';
 export const bounds={minX:-112,maxX:112,minZ:-162,maxZ:158};
 export const TOP={elevation:47,yaw:0,span:15,minSpan:12,maxSpan:60,fov:34};
 export const ACTOR_SCALE=1.7;
@@ -21,12 +21,12 @@ export const sites=[
  site('kcf-jongno','KCF 종로점',25,13,19,17,'kcf'),
  site('deoksugung','덕수궁',-81,44,43,28,'palace',[-56,47]),
  site('cityhall','서울시청',-17,44,29,20,'civic'),
- site('midopa','미도파백화점',-20,73,25,16,'store'),
- site('myeongdong-street','명동',20,86,52,35,'shopping',[18,88]),
+ site('midopa','미도파백화점',-20,73,22,16,'store'),
+ site('myeongdong-street','명동',30,86,72,35,'shopping',[18,88]),
  site('myeongdong-cathedral','명동성당',81,84,33,38,'cathedral',[81,96]),
  site('chungmuro','충무로',97,122,17,14,'film',[93,113]),
  site('namdaemun-market','남대문시장',-23,100,33,17,'market',[-23,110]),
- site('namdaemun','숭례문',-58,106,22,17,'gate',[-58,116]),
+ site('namdaemun','숭례문',-60,106,22,17,'gate',[-60,116]),
  site('seoul-station','서울역',stationPlan.x,stationPlan.z,38,25,'station',[stationPlan.entry.x,stationPlan.entry.z]),
  site('hoehyeon-hillside','회현동 언덕',23,137,82,30,'village',[22,119])
 ];
@@ -34,21 +34,24 @@ export const entrances=Object.fromEntries(sites.map(s=>[s.id,s.entry]));
 export const spawn=entrances.changgyeongwon;
 export const roads=[
  {id:'yulgok',name:'율곡로',width:7,points:[[-108,-72],[-43,-72],[5,-72],[58,-72],[106,-72]]},
- {id:'sejong',name:'세종로 · 태평로',width:10,points:[[-43,-73],[-43,-5],[-43,30],[-43,60],[-43,88],[-74,88],[-74,122]]},
+ {id:'sejong',name:'세종로 · 태평로',width:10,points:[[-43,-73],[-43,-5],[-43,30],[-43,60],[-43,88],[-78,88],[-78,122]]},
  {id:'jongno',name:'종로',width:8,points:[[-108,-5],[-43,-5],[3,-5],[58,-5],[108,-5]]},
  {id:'cheonggye',name:'청계천 복개도로',width:6,points:[[-43,30],[58,30],[108,30]]},
  {id:'eulji',name:'을지로',width:7,points:[[-43,60],[58,60],[108,60]]},
- {id:'donhwa',name:'돈화문로',width:6,points:[[58,-72],[58,-5],[58,30],[58,60],[58,112]]},
+ {id:'donhwa',name:'돈화문로',width:6,points:[[58,-72],[58,-5],[58,30],[58,60]]},
  {id:'changgyeong',name:'창경궁로',width:5,points:[[106,-151],[106,-72],[106,-5]]},
- {id:'toegye',name:'퇴계로',width:8,points:[[-108,122],[-42,122],[-42,113],[-5,113],[58,113],[108,113]]},
+ {id:'toegye',name:'퇴계로',width:8,points:[[-108,122],[-43,122],[-43,113],[-4,113],[58,113],[108,113]]},
+ {id:'myeongdong-west',name:'명동 서쪽길',width:5,points:[[-4,60],[-4,113]]},
+ {id:'namdaemun-east',name:'숭례문 동쪽길',width:6,points:[[-43,88],[-43,113]]},
  {id:'station',name:'서울역 앞길',width:7,points:[[-58,122],[-58,152],[-108,152]]}
 ];
 export const mainWalks=[
  [[-35,-150],[-35,-80]],[[0,-150],[0,-80]],[[3,-65],[3,22]],
- [[-6,66],[-6,86],[5,93],[50,93]],[[8,66],[8,86],[50,86]],
+ [[3,86],[8,92],[50,92],[64,96],[81,96]],[[22,66],[22,86],[50,86],[62,90]],
  [[-39,118],[-15,125],[10,125],[42,151]],[[10,125],[46,125],[55,151]],
  [[-75,-72],[-75,-85],[-90,-85],[-90,-105],[-75,-105]],
- [[-58,116],[-58,120],[-38,120],[-23,110]],
+ [[-60,116],[-49,116],[-38,116],[-23,110]],
+ [[-20,83],[-20,86],[3,86],[18,88]],
  [[-29,84],[-29,110]],[[66,-151],[66,-78]]
 ];
 export const worldData={worldId:WORLD_ID,mapRevision:MAP_REVISION,roomId:ROOM_ID,spawn,bounds,entrances};
