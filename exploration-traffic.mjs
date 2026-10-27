@@ -6,7 +6,7 @@ function path(points){const p=rounded(points),lengths=[],total=p.slice(1).reduce
 export function createExplorationTraffic(){const paths=explorationTrafficLoops.map(path),colors=['#197f85','#dc492c','#efb544','#f8edcf','#2c7b9a'],cars=paths.flatMap((p,j)=>Array.from({length:4},(_,i)=>({id:1000+j*4+i,model:'pony',color:colors[i%5],taxi:i===2,path:j,travelled:i*p.total/4,speed:0,...p.at(i*p.total/4)})));let tick=0,time=0;
  return{populate(){},advance(dt,players){if(!players.length)return;dt=Math.min(.1,dt);time+=dt;tick++;const phase=signalPhase(time);
   for(const car of cars){const dx=Math.sin(car.turn),dz=Math.cos(car.turn),axis=Math.abs(dx)>Math.abs(dz)?'ew':'ns';
-   const red=junctions.some(j=>{const forward=(j.x-car.x)*dx+(j.z-car.z)*dz,lateral=Math.abs((j.x-car.x)*dz-(j.z-car.z)*dx),stop=(axis==='ns'?j.ew:j.ns)/2+3.4;return lateral<4&&forward>stop&&forward<stop+2.5&&!greenFor(axis,phase.index);});
+   const red=junctions.some(j=>{const forward=(j.x-car.x)*dx+(j.z-car.z)*dz,lateral=Math.abs((j.x-car.x)*dz-(j.z-car.z)*dx),stop=(axis==='ns'?j.ew:j.ns)/2+6.3;const approach=axis==='ns'?(dz<0?'s':'n'):(dx<0?'e':'w');return j.arms.some(a=>a.name===approach)&&lateral<4&&forward>stop&&forward<stop+2.5&&!greenFor(axis,phase.index);});
    const ahead=cars.some(c=>c!==car&&c.path===car.path&&((c.travelled-car.travelled+paths[car.path].total)%paths[car.path].total)<5.6);
    const stop=red||ahead||players.some(p=>Math.hypot(p.x-car.x,p.z-car.z)<3),speed=stop?0:4.2;car.speed=speed;car.travelled+=speed*dt;Object.assign(car,paths[car.path].at(car.travelled));
   }},snapshot(){return{tick,time,cars:cars.map(({path,...c})=>({...c})),signals:junctions.map(j=>({id:j.id,...signalPhase(time)}))};}};

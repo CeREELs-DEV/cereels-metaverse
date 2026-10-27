@@ -1,8 +1,8 @@
 // 역사·복선·광장이 공유하는 배치. 열차 반복 전환점은 건물 안과 맵 바깥.
 export const stationPlan={
- x:-81,z:133.5,width:28,depth:10,
- entry:{x:-81,z:143},
- tracks:[131.5,135.5],west:-164,inside:-80,speed:4,dwell:5,
+ x:-81,z:134.9,width:28,depth:10,
+ entry:{x:-81,z:144.4},
+ tracks:[132.9,136.9],west:-164,inside:-80,speed:4,dwell:5,
  roadZ:158.8,
  plot:{x:-85,z:137.5,w:46,d:33},
  plaza:{minX:-107,maxX:-63,minZ:139,maxZ:152.8},
