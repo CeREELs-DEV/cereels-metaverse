@@ -1,3 +1,4 @@
+import {stationForecourt} from './station-plan.js';
 import {roads,sites,distanceToSegment} from './plan.js';
 
 export const sidewalkWidth=2.5;
@@ -22,6 +23,7 @@ export function curbTrees(solids=[]){const out=[];
   for(let t=Math.ceil((min+5)/12)*12;t<max-5;t+=12)for(const side of [-1,1]){
    const x=vertical?a[0]+side*(r.width/2+1.25):t,z=vertical?t:a[1]+side*(r.width/2+1.25);
    if(roads.some(q=>q!==r&&q.points.some((p,n)=>n&&distanceToSegment(x,z,q.points[n-1],p)<q.width/2+4)))continue;
+   if(stationForecourt(x,z))continue;
    if(crossingPlan.some(p=>Math.hypot(x-p.x,z-p.z)<7)||sites.some(s=>Math.hypot(x-s.entry.x,z-s.entry.z)<5))continue;
    if(solids.some(s=>Math.abs(x-s.x)<s.w/2+2&&Math.abs(z-s.z)<s.d/2+2)||out.some(p=>Math.hypot(p.x-x,p.z-z)<5))continue;
    out.push({x,z,road:r.id,offset:r.width/2+1.25});

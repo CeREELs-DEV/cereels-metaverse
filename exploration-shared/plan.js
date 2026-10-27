@@ -1,5 +1,6 @@
+import {stationPlan} from './station-plan.js';
 // 1.3 전용 좌표를 설계하며 1.2 지도를 축소하지 않는다.
-export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-1';
+export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-2';
 export const bounds={minX:-112,maxX:112,minZ:-162,maxZ:158};
 export const TOP={elevation:47,yaw:0,span:15,minSpan:12,maxSpan:60,fov:34};
 export const ACTOR_SCALE=1.7;
@@ -26,21 +27,21 @@ export const sites=[
  site('chungmuro','충무로',97,122,17,14,'film',[93,113]),
  site('namdaemun-market','남대문시장',-23,100,33,17,'market',[-23,110]),
  site('namdaemun','숭례문',-58,106,22,17,'gate',[-58,116]),
- site('seoul-station','서울역',-81,143,32,23,'station',[-81,151]),
+ site('seoul-station','서울역',stationPlan.x,stationPlan.z,38,25,'station',[stationPlan.entry.x,stationPlan.entry.z]),
  site('hoehyeon-hillside','회현동 언덕',23,137,82,30,'village',[22,119])
 ];
 export const entrances=Object.fromEntries(sites.map(s=>[s.id,s.entry]));
 export const spawn=entrances.changgyeongwon;
 export const roads=[
  {id:'yulgok',name:'율곡로',width:7,points:[[-108,-72],[-43,-72],[5,-72],[58,-72],[106,-72]]},
- {id:'sejong',name:'세종로 · 태평로',width:10,points:[[-43,-73],[-43,-5],[-43,30],[-43,60],[-43,88],[-74,88],[-74,126]]},
+ {id:'sejong',name:'세종로 · 태평로',width:10,points:[[-43,-73],[-43,-5],[-43,30],[-43,60],[-43,88],[-74,88],[-74,122]]},
  {id:'jongno',name:'종로',width:8,points:[[-108,-5],[-43,-5],[3,-5],[58,-5],[108,-5]]},
  {id:'cheonggye',name:'청계천 복개도로',width:6,points:[[-43,30],[58,30],[108,30]]},
  {id:'eulji',name:'을지로',width:7,points:[[-43,60],[58,60],[108,60]]},
  {id:'donhwa',name:'돈화문로',width:6,points:[[58,-72],[58,-5],[58,30],[58,60],[58,112]]},
  {id:'changgyeong',name:'창경궁로',width:5,points:[[106,-151],[106,-72],[106,-5]]},
- {id:'toegye',name:'퇴계로',width:8,points:[[-108,126],[-42,126],[-42,113],[-5,113],[58,113],[108,113]]},
- {id:'station',name:'서울역 앞길',width:7,points:[[-58,126],[-58,153]]}
+ {id:'toegye',name:'퇴계로',width:8,points:[[-108,122],[-42,122],[-42,113],[-5,113],[58,113],[108,113]]},
+ {id:'station',name:'서울역 앞길',width:7,points:[[-58,122],[-58,152],[-108,152]]}
 ];
 export const mainWalks=[
  [[-35,-150],[-35,-80]],[[0,-150],[0,-80]],[[3,-65],[3,22]],
