@@ -2,9 +2,10 @@ import {Room,ServerError} from '@colyseus/core';
 import {schema,t} from '@colyseus/schema';
 import {createSharedTraffic} from './traffic-world.mjs';
 import {createExplorationTraffic} from './exploration-traffic.mjs';
+import {characters as characterRoster,DEFAULT_CHARACTER} from './shared/character-roster.js';
 
 export const MAX_VISITORS=12;
-const characters=new Set(['visitor','cleo','eustace','taemi']);
+const characters=new Set(Object.keys(characterRoster));
 export const cleanText=(value,max)=>typeof value==='string'?value.normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').trim().slice(0,max):'';
 export function validPose(value,world={}){
  // 이전 호출자의 기본 도심 경계. 실행 서버는 준비된 월드의 확장 경계 사용.
@@ -13,7 +14,7 @@ export function validPose(value,world={}){
  if(!world.boundary)return true;
  let inside=false;for(let i=0,j=world.boundary.length-1;i<world.boundary.length;j=i++){const a=world.boundary[i],b=world.boundary[j];if((a[1]>value.z)!==(b[1]>value.z)&&value.x<(b[0]-a[0])*(value.z-a[1])/(b[1]-a[1])+a[0])inside=!inside;}return inside;
 }
-const Visitor=schema({name:t.string().default(''),character:t.string().default('visitor'),x:t.float32().default(0),z:t.float32().default(0),hx:t.float32().default(1),hz:t.float32().default(1),moving:t.boolean().default(false),running:t.boolean().default(false)},'Visitor');
+const Visitor=schema({name:t.string().default(''),character:t.string().default(DEFAULT_CHARACTER),x:t.float32().default(0),z:t.float32().default(0),hx:t.float32().default(1),hz:t.float32().default(1),moving:t.boolean().default(false),running:t.boolean().default(false)},'Visitor');
 const Car=schema({model:t.string(),color:t.string(),taxi:t.boolean(),x:t.float32(),z:t.float32(),turn:t.float32(),speed:t.float32(),travelled:t.float32()},'Car');
 const Signal=schema({index:t.uint8(),elapsed:t.float32()},'Signal');
 const SeoulState=schema({visitors:t.map(Visitor),cars:t.map(Car),signals:t.map(Signal),trafficTick:t.uint32().default(0),trafficTime:t.float64().default(0)},'SeoulState');
@@ -80,9 +81,10 @@ export class SeoulRoom extends Room{
  }
  onJoin(client,options={}){
   options=options&&typeof options==='object'&&!Array.isArray(options)?options:{};
+  if(this.world.characterRevision&&options.characterRevision!==this.world.characterRevision)throw new ServerError(409,'캐릭터가 업데이트되었습니다. 화면을 새로고침해 주세요.');
   if(this.world.worldId&&this.world.worldId!=='seoul'&&(options.worldId!==this.world.worldId||options.mapRevision!==this.world.mapRevision))throw new ServerError(409,'서울 버전이 다릅니다. 같은 버전 주소에서 다시 접속해 주세요.');
   const player=new Visitor(),point=validPose(options,this.world)?options:this.world.spawn;
-  Object.assign(player,{name:cleanText(options.name,20)||'산책자-'+client.sessionId.slice(0,4),character:characters.has(options.character)?options.character:'visitor',x:point.x,z:point.z});
+  Object.assign(player,{name:cleanText(options.name,20)||'산책자-'+client.sessionId.slice(0,4),character:characters.has(options.character)?options.character:DEFAULT_CHARACTER,x:point.x,z:point.z});
   this.state.visitors.set(client.sessionId,player);this.sessions.set(client.sessionId,{poseTime:0,moveTime:Date.now(),chatTime:0,arrivalTime:0,movement:options.moveSeq===0&&Number.isFinite(options.moveTime)?{seq:0,time:null}:null});
   if(this.traffic){this.traffic.populate(player,[...this.state.visitors.values()]);this.publishTraffic();}
  }

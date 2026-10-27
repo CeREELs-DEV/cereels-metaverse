@@ -1,7 +1,7 @@
-// 1.3 uses its own authored coordinates. Nothing in this file rescales the 1.2 map.
+// 1.3 전용 좌표를 설계하며 1.2 지도를 축소하지 않는다.
 export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-1';
 export const bounds={minX:-112,maxX:112,minZ:-162,maxZ:158};
-export const TOP={elevation:47,yaw:0,span:40,minSpan:32,maxSpan:60,fov:34};
+export const TOP={elevation:47,yaw:0,span:15,minSpan:12,maxSpan:60,fov:34};
 export const ACTOR_SCALE=1.7;
 const site=(id,name,x,z,w,d,kind,entry=[x,z+d/2+2])=>({id,name,x,z,w,d,kind,entry:{x:entry[0],z:entry[1]}});
 export const sites=[
