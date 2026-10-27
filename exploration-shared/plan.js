@@ -1,6 +1,6 @@
 import {stationPlan} from './station-plan.js';
 // 1.3 전용 좌표를 설계하며 1.2 지도를 축소하지 않는다.
-export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-4';
+export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-5';
 export const bounds={minX:-112,maxX:112,minZ:-162,maxZ:198};
 export const TOP={elevation:47,yaw:0,span:15,minSpan:12,maxSpan:60,fov:34};
 export const ACTOR_SCALE=1.7;
