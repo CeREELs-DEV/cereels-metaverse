@@ -5,7 +5,7 @@ export {sidewalkWidth};
 const directions=[{name:'n',dx:0,dz:-1,axis:'ns',yaw:Math.PI,corner:'nw'},{name:'s',dx:0,dz:1,axis:'ns',yaw:0,corner:'se'},{name:'e',dx:1,dz:0,axis:'ew',yaw:Math.PI/2,corner:'ne'},{name:'w',dx:-1,dz:0,axis:'ew',yaw:-Math.PI/2,corner:'sw'}];
 export const junctions=[['sejong-yulgok',-43,-72],['donhwa-yulgok',58,-72],['sejong-jongno',-43,-5],['donhwa-jongno',58,-5],['sejong-eulji',-43,60],['donhwa-eulji',58,60],['myeongdong-eulji',-4,60]].map(([id,x,z])=>{const arms=directions.map(a=>({...a,width:roadArmWidth(x,z,a.dx,a.dz)})).filter(a=>a.width);return{id,x,z,arms,ns:Math.max(0,...arms.filter(a=>a.axis==='ns').map(a=>a.width)),ew:Math.max(0,...arms.filter(a=>a.axis==='ew').map(a=>a.width))};});
 export const crossingPlan=[...junctions.flatMap(j=>j.arms.map(a=>({id:j.id+'-'+a.name,junction:j.id,approach:a.name,x:j.x+a.dx*((a.axis==='ns'?j.ew:j.ns)/2+2.65),z:j.z+a.dz*((a.axis==='ns'?j.ew:j.ns)/2+2.65),axis:a.axis,length:a.width,depth:2.4}))),...[
- ['gwanghwamun',-75,-72,'ew',7],['namdaemun',-43,104,'ns',8],['myeongdong',-4,86,'ns',5],['station',-58,150,'ns',7]
+ ['gwanghwamun',-75,-72,'ew',7],['namdaemun',-43,104,'ns',10],['myeongdong',-4,86,'ns',5],['station',-58,150,'ns',7]
 ].map(([id,x,z,axis,length])=>({id,x,z,axis,length,depth:2.4}))];
 function corner(j,name){return{x:j.x+(name.endsWith('e')?1:-1)*(j.ns/2+.8),z:j.z+(name.startsWith('s')?1:-1)*(j.ew/2+.8)};}
 export const signalPoles=junctions.flatMap(j=>['nw','ne','se','sw'].map(name=>({id:j.id+'-'+name,junction:j.id,...corner(j,name),height:j.arms.some(a=>a.corner===name)?4.9:3.1})));

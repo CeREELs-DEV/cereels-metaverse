@@ -13,15 +13,15 @@ export const roads=[
  {id:'changgyeong',name:'창경궁로',width:5,points:[[106,-162],[106,-72],[106,-5]]},
  {id:'toegye',name:'퇴계로',width:8,points:[[-112,122],[-78,122],[-58,122],[-43,122],[-43,113],[-4,113],[58,113],[112,113]]},
  {id:'myeongdong-west',name:'명동 서쪽길',width:5,points:[[-4,60],[-4,113]]},
- {id:'namdaemun-east',name:'숭례문 동쪽길',width:8,widths:[10,10,8,8],points:[[-43,88],[-43,93],[-43,101],[-43,113]]},
+ {id:'namdaemun-east',name:'숭례문 동쪽길',width:10,points:[[-43,88],[-43,126]]},
  {id:'station',name:'서울역 앞길',width:7,points:[[-58,122],[-58,stationPlan.roadZ],[-112,stationPlan.roadZ]]}
 ];
-// 숭례문 섬과 사방 차도 주변은 보도·가로수 없이 정리.
-export const namdaemunBare={minX:-86.125,maxX:-34.875,minZ:79.875,maxZ:129.125};
+// 숭례문 섬 안쪽만 보도 제외. 사방 차도 바깥 블록의 인도는 연속 유지.
+export const namdaemunBare={minX:-73,maxX:-48,minZ:93,maxZ:118};
 export const inBareIsland=(x,z)=>x>=namdaemunBare.minX&&x<=namdaemunBare.maxX&&z>=namdaemunBare.minZ&&z<=namdaemunBare.maxZ;
 export const roadSegments=roads.flatMap(r=>r.points.slice(1).map((b,i)=>({road:r.id,width:r.width,startWidth:r.widths?.[i]??r.width,endWidth:r.widths?.[i+1]??r.width,a:r.points[i],b,vertical:b[0]===r.points[i][0]})));
 export function roadPolygons(padding=0){
- const out=roadSegments.map(s=>{const dx=s.b[0]-s.a[0],dz=s.b[1]-s.a[1],length=Math.hypot(dx,dz),nx=dz/length,nz=-dx/length,ha=s.startWidth/2+padding,hb=s.endWidth/2+padding;return[[s.a[0]+nx*ha,s.a[1]+nz*ha],[s.b[0]+nx*hb,s.b[1]+nz*hb],[s.b[0]-nx*hb,s.b[1]-nz*hb],[s.a[0]-nx*ha,s.a[1]-nz*ha]];});
+ const out=roadSegments.map(s=>{const dx=s.b[0]-s.a[0],dz=s.b[1]-s.a[1],length=Math.hypot(dx,dz),ux=dx/length,uz=dz/length,nx=uz,nz=-ux,ha=s.startWidth/2+padding,hb=s.endWidth/2+padding,a=[s.a[0]-ux*padding,s.a[1]-uz*padding],b=[s.b[0]+ux*padding,s.b[1]+uz*padding];return[[a[0]+nx*ha,a[1]+nz*ha],[b[0]+nx*hb,b[1]+nz*hb],[b[0]-nx*hb,b[1]-nz*hb],[a[0]-nx*ha,a[1]-nz*ha]];});
  for(const r of roads)for(let i=1;i<r.points.length-1;i++){const a=r.points[i-1],p=r.points[i],b=r.points[i+1];if((a[0]===p[0])===(p[0]===b[0]))continue;const h=(r.widths?.[i]??r.width)/2+padding;out.push([[p[0]-h,p[1]-h],[p[0]+h,p[1]-h],[p[0]+h,p[1]+h],[p[0]-h,p[1]+h]]);}
  return out;
 }

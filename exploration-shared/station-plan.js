@@ -7,7 +7,7 @@ export const stationPlan={
  plot:{x:-85,z:137.5,w:46,d:33},
  plaza:{minX:-107,maxX:-63,minZ:139,maxZ:152.8},
  benches:[[-94,141.8],[-89.5,141.8],[-72.5,141.8],[-68,141.8]],
- trees:[[-105,141.8],[-64.5,141.8]]
+ trees:[]
 };
 export function stationTrainPose(time,index){
  const p=stationPlan,travel=(p.inside-p.west)/p.speed,period=travel+p.dwell,phase=((time+index*11)%period+period)%period;
