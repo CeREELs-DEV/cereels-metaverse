@@ -1,7 +1,7 @@
 import {stationPlan} from './station-plan.js';
 // 1.3 전용 좌표를 설계하며 1.2 지도를 축소하지 않는다.
-export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-3';
-export const bounds={minX:-112,maxX:112,minZ:-162,maxZ:158};
+export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261027-4';
+export const bounds={minX:-112,maxX:112,minZ:-162,maxZ:198};
 export const TOP={elevation:47,yaw:0,span:15,minSpan:12,maxSpan:60,fov:34};
 export const ACTOR_SCALE=1.7;
 const site=(id,name,x,z,w,d,kind,entry=[x,z+d/2+2])=>({id,name,x,z,w,d,kind,entry:{x:entry[0],z:entry[1]}});
@@ -27,8 +27,8 @@ export const sites=[
  site('chungmuro','충무로',97,122,17,14,'film',[93,113]),
  site('namdaemun-market','남대문시장',-23,100,33,17,'market',[-23,110]),
  site('namdaemun','숭례문',-60,106,22,17,'gate',[-60,116]),
- site('seoul-station','서울역',stationPlan.x,stationPlan.z,38,25,'station',[stationPlan.entry.x,stationPlan.entry.z]),
- site('hoehyeon-hillside','회현동 언덕',23,137,82,30,'village',[22,119])
+ {...site('seoul-station','서울역',stationPlan.x,stationPlan.z,38,25,'station',[stationPlan.entry.x,stationPlan.entry.z]),plot:stationPlan.plot},
+ site('hoehyeon-hillside','회현동 언덕',23,158,82,72,'village',[22,140])
 ];
 export const entrances=Object.fromEntries(sites.map(s=>[s.id,s.entry]));
 export const spawn=entrances.changgyeongwon;
@@ -43,12 +43,23 @@ export const roads=[
  {id:'toegye',name:'퇴계로',width:8,points:[[-108,122],[-43,122],[-43,113],[-4,113],[58,113],[108,113]]},
  {id:'myeongdong-west',name:'명동 서쪽길',width:5,points:[[-4,60],[-4,113]]},
  {id:'namdaemun-east',name:'숭례문 동쪽길',width:6,points:[[-43,88],[-43,113]]},
- {id:'station',name:'서울역 앞길',width:7,points:[[-58,122],[-58,152],[-108,152]]}
+ {id:'station',name:'서울역 앞길',width:7,points:[[-58,122],[-58,stationPlan.roadZ],[-108,stationPlan.roadZ]]}
+];
+export const villageHomes=[[-13,132,7,6],[0,130,8,5],[15,134,7,6],[31,132,8,6],[44,134,7,5],[-8,148,8,6],[6,146,7,5],[24,150,8,6],[42,148,7,6],
+ [-12,166,7,6],[3,165,8,6],[18,167,7,5],[35,165,8,6],[50,168,7,5],[-8,182,8,6],[8,184,7,6],[27,182,9,6],[45,184,8,5]];
+export const villageWalks=[
+ [[-39,118],[-25,126],[-25,140],[-24,160],[-24,190]],
+ [[22,119],[22,140],[16,140],[16,157],[-24,157]],
+ [[-25,140],[57,140],[60,157]],
+ [[-24,157],[57,157],[60,190]],
+ [[-64,160],[-49,160],[-24,160]],
+ [[-24,176],[56,176],[60,178]],
+ [[-24,190],[57,190],[60,178]]
 ];
 export const mainWalks=[
  [[-35,-150],[-35,-80]],[[0,-150],[0,-80]],[[3,-65],[3,22]],
  [[3,86],[8,92],[50,92],[64,96],[81,96]],[[22,66],[22,86],[50,86],[62,90]],
- [[-39,118],[-15,125],[10,125],[42,151]],[[10,125],[46,125],[55,151]],
+ ...villageWalks,
  [[-75,-72],[-75,-85],[-90,-85],[-90,-105],[-75,-105]],
  [[-60,116],[-49,116],[-38,116],[-23,110]],
  [[-20,83],[-20,86],[3,86],[18,88]],
@@ -57,6 +68,7 @@ export const mainWalks=[
 export const worldData={worldId:WORLD_ID,mapRevision:MAP_REVISION,roomId:ROOM_ID,spawn,bounds,entrances};
 export function distanceToSegment(x,z,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz||1)));return Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t);}
 export function nearRoad(x,z,padding=0){return roads.some(r=>r.points.some((p,i)=>i&&distanceToSegment(x,z,r.points[i-1],p)<r.width/2+padding));}
-export function inSite(x,z,padding=0){return sites.some(s=>Math.abs(x-s.x)<s.w/2+padding&&Math.abs(z-s.z)<s.d/2+padding);}
+export const sitePlot=s=>s.plot||s;
+export function inSite(x,z,padding=0){return sites.some(s=>{const p=sitePlot(s);return Math.abs(x-p.x)<p.w/2+padding&&Math.abs(z-p.z)<p.d/2+padding;});}
 export function canWalk(x,z,solids=[]){return x>bounds.minX+2&&x<bounds.maxX-2&&z>bounds.minZ+2&&z<bounds.maxZ-2&&!solids.some(s=>Math.abs(x-s.x)<s.w/2+.4&&Math.abs(z-s.z)<s.d/2+.4);}
 export function moveWithCollision(p,dx,dz,solids){const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.35));let x=p.x,z=p.z;for(let i=0;i<steps;i++){if(canWalk(x+dx/steps,z,solids))x+=dx/steps;if(canWalk(x,z+dz/steps,solids))z+=dz/steps;}return{x,z};}

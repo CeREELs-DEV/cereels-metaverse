@@ -8,7 +8,7 @@ export const crossingPlan=[...junctions.flatMap(j=>[
  {x:j.x,z:j.z-j.ew/2-3,axis:'ns',length:j.ns},
  {x:j.x+j.ns/2+3,z:j.z,axis:'ew',length:j.ew},
  {x:j.x-j.ns/2-3,z:j.z,axis:'ew',length:j.ew}
-]),{x:-43,z:116,axis:'ns',length:8},{x:-4,z:86,axis:'ns',length:5}];
+]),{x:-43,z:116,axis:'ns',length:8},{x:-4,z:86,axis:'ns',length:5},{x:-58,z:160,axis:'ns',length:7}];
 export const signalHeads=junctions.flatMap(j=>[
  ...(!j.southClosed?[{id:j.id,axis:'ns',x:j.x+j.ns/2+1,z:j.z+j.ew/2+2,yaw:0}]:[]),
  {id:j.id,axis:'ns',x:j.x-j.ns/2-1,z:j.z-j.ew/2-2,yaw:Math.PI},
