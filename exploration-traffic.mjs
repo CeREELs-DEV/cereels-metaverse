@@ -1,14 +1,16 @@
 import {junctions,signalPhase,greenFor} from './exploration-shared/street-plan.js';
+import {mergeSection} from './exploration-shared/road-plan.js';
 // 같은 서버에서 별도 방의 차량·신호 시각 동기화
+const mergePath=(northX,southX,reverse=false)=>{const p=Array.from({length:11},(_,i)=>{const z=4+i*2,t=mergeSection(z).t;return[northX+(southX-northX)*t,z];});return reverse?p.reverse():p;};
 export const explorationTrafficLoops=[
- [[-40.05,-70],[56,-70],[56,58],[-40.05,58]],
+ [[-40.05,-70],[56,-70],[56,58],[-41,58],...mergePath(-40.05,-41,true)],
  [[-44.15,-70],[104.5,-70],[104.5,-7],[-44.15,-7]],
- [[-51.85,-74],[-51.85,62],[60,62],[60,-74]],
+ [[-51.85,-74],...mergePath(-51.85,-45),[-45,62],[60,62],[60,-74]],
  [[-55.95,-74],[-55.95,-3],[107.5,-3],[107.5,-74]],
- [[-86,90],[-51.85,90],[-51.85,120],[-86,120]],
- [[-90,86],[-90,124],[-40.05,124],[-40.05,86]]
- ];
-function rounded(points){const out=[];for(let i=0;i<points.length;i++){const a=points[(i+points.length-1)%points.length],b=points[i],c=points[(i+1)%points.length],ab=Math.hypot(a[0]-b[0],a[1]-b[1]),cb=Math.hypot(c[0]-b[0],c[1]-b[1]),r=3,start=[b[0]+(a[0]-b[0])*r/ab,b[1]+(a[1]-b[1])*r/ab],end=[b[0]+(c[0]-b[0])*r/cb,b[1]+(c[1]-b[1])*r/cb];for(let n=0;n<=6;n++){const t=n/6;out.push([(1-t)**2*start[0]+2*t*(1-t)*b[0]+t*t*end[0],(1-t)**2*start[1]+2*t*(1-t)*b[1]+t*t*end[1]]);}}out.push(out[0]);return out;}
+ [[-76,90],[-45,90],[-45,120],[-76,120]],
+ [[-80,86],[-80,124],[-41,124],[-41,86]]
+];
+function rounded(points){const out=[];for(let i=0;i<points.length;i++){const a=points[(i+points.length-1)%points.length],b=points[i],c=points[(i+1)%points.length],ab=Math.hypot(a[0]-b[0],a[1]-b[1]),cb=Math.hypot(c[0]-b[0],c[1]-b[1]),r=Math.min(3,ab/3,cb/3),start=[b[0]+(a[0]-b[0])*r/ab,b[1]+(a[1]-b[1])*r/ab],end=[b[0]+(c[0]-b[0])*r/cb,b[1]+(c[1]-b[1])*r/cb];for(let n=0;n<=6;n++){const t=n/6;out.push([(1-t)**2*start[0]+2*t*(1-t)*b[0]+t*t*end[0],(1-t)**2*start[1]+2*t*(1-t)*b[1]+t*t*end[1]]);}}out.push(out[0]);return out;}
 function path(points){const p=rounded(points),lengths=[],total=p.slice(1).reduce((s,b,i)=>{lengths.push(s);return s+Math.hypot(b[0]-p[i][0],b[1]-p[i][1]);},0);return{total,at(distance){const t=((distance%total)+total)%total;let i=lengths.findLastIndex(s=>s<=t);const a=p[i],b=p[i+1],length=Math.hypot(b[0]-a[0],b[1]-a[1]),f=(t-lengths[i])/length;return{x:a[0]+(b[0]-a[0])*f,z:a[1]+(b[1]-a[1])*f,turn:Math.atan2(b[0]-a[0],b[1]-a[1])};}};}
 export function createExplorationTraffic(){const paths=explorationTrafficLoops.map(path),colors=['#197f85','#dc492c','#efb544','#f8edcf','#2c7b9a'],cars=paths.flatMap((p,j)=>Array.from({length:2},(_,i)=>({id:1000+j*2+i,model:'pony',color:colors[(j*2+i)%4],taxi:(j*2+i)%4===2,path:j,travelled:i*p.total/2,speed:0,...p.at(i*p.total/2)})));let tick=0,time=0;
  return{populate(){},advance(dt,players){if(!players.length)return;dt=Math.min(.1,dt);time+=dt;tick++;const phase=signalPhase(time);
