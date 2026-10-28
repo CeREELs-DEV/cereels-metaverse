@@ -3,7 +3,7 @@ import {hillHomeCoordinates,hillWalks,HOEHYEON} from './hoehyeon-plan.js';
 import {roads,roadBounds as bounds,nearRoad} from './road-plan.js';
 export {roads,bounds,nearRoad};
 // 1.3 전용 좌표를 설계하며 1.2 지도를 축소하지 않는다.
-export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261028-6';
+export const VERSION='1.3',WORLD_ID='seoul-1.3',ROOM_ID='seoul-13',MAP_REVISION='exploration-20261028-7';
 export const TOP={elevation:47,yaw:0,span:15,minSpan:12,maxSpan:60,fov:34};
 export const ACTOR_SCALE=1.7;
 const site=(id,name,x,z,w,d,kind,entry=[x,z+d/2+2])=>({id,name,x,z,w,d,kind,entry:{x:entry[0],z:entry[1]}});
